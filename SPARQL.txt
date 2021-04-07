@@ -1,0 +1,100 @@
+#############################
+
+###### This captured the list of people whose profession is literary critic (Q4263842) AND novelist (Q6625963) with birthdates between 1800 and 1900.
+
+SELECT DISTINCT ?personLabel ?person ?birth ?article WHERE {
+  ?person wdt:P106 wd:Q4263842, wd:Q6625963;
+    wdt:P569 ?birth.
+  ?article schema:about ?person;
+    schema:isPartOf <https://en.wikipedia.org/>;
+    schema:inLanguage "en".
+  FILTER((?birth > "1800-01-01"^^xsd:dateTime) && (?birth < "1900-01-01"^^xsd:dateTime))
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}
+ORDER BY (?birth)
+
+#############################
+
+
+###### Below captured a supposed list of all instances of profession (Q28640) on Wikidata, but some of them are unnamed in plain English, and of those named, some have non-English names.
+
+SELECT DISTINCT ?item ?broader ?itemLabel ?sites WITH {
+    SELECT DISTINCT ?item { ?item wdt:P279* wd:Q28640 }
+  } AS %items WHERE {
+    INCLUDE %items .
+    OPTIONAL { ?item wdt:P279 ?broader } .
+    {
+      SELECT ?item (count(distinct ?site) as ?sites) {
+        INCLUDE %items.
+        OPTIONAL { ?site schema:about ?item }
+      } GROUP BY ?item
+    }
+    SERVICE wikibase:label {
+      bd:serviceParam wikibase:language "en"
+    }
+  }
+
+
+
+###### Below finds a list of occupations (all instances of the Q entity, which in this case is "non-professional work activity")
+Q4164871 - position
+Q28640 - profession (subclass of job and occupation)
+Q192581 - job
+Q12737077 - Occupation AKA non-professional work activity
+
+SELECT ?jid ?job WHERE {
+  ?jid wdt:P31 wd:Q28640.
+  OPTIONAL {
+    ?jid rdfs:label ?job.
+    FILTER((LANG(?job)) = "en")
+  }
+}
+
+
+###### This query narrows the above list query and finds only occupations with descriptions. The number of occupations decreases significantly from ~7500 to ~3800
+
+SELECT ?jid ?job ?jdesc WHERE {
+  ?jid wdt:P31 wd:Q28640;
+    schema:description ?jdesc;
+    rdfs:label ?job.
+  FILTER((LANG(?job)) = "en")
+  FILTER((LANG(?jdesc)) = "en")
+}
+
+###### IMPORTANT: In a previous draft, I enclosed the filters in an OPTIONAL{} clause, but: "an optional clause with multiple triples only matches when all those triples can be satisfied. That is: if a book has a title, an illustrator, a publisher, and a publication date, then the optional clause matches, and those values are assigned to the appropriate variables. But if a book has, for example, a title but no illustrator, the entire optional clause doesn’t match, and although the result isn’t discarded, all four variables remain empty." So this is why when I launched that query, I got results in other languages AND those that also had blanks for ?job or ?jdesc.
+
+
+
+###### This seems like it gets a list of attributes Barack Obama has?
+
+SELECT ?p ?attName WHERE {
+  BIND(wd:Q76 AS ?q)
+  ?q wdt:P31 wd:Q5;
+    ?p ?statement.
+  ?realAtt wikibase:claim ?p;
+    rdfs:label ?attName.
+  FILTER(((LANG(?attName)) = "en") || ((LANG(?attName)) = ""))
+}
+GROUP BY ?p ?attName
+
+
+
+###### This seems to get general properties of humans (Q5):
+
+SELECT ?property ?propertyLabel {
+  VALUES (?class) {(wd:Q5)}
+  ?class wdt:P1963 ?property
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
+} ORDER BY ASC(xsd:integer(strafter(str(?property), concat(str(wd:), "P"))))
+
+
+
+###### This is a query that finds all properties (P####) connecting items of type zoo (Q43501) with type animal (Q729)
+
+select ?p ?pLabel (count (*) as ?count) {
+  ?s ?pd ?o .
+  ?p wikibase:directClaim ?pd .
+  ?s wdt:P31/wdt:P279* wd:Q729 .
+  ?o wdt:P31/wdt:P279* wd:Q43501 .
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+} group by ?p ?pLabel order by desc(?count)
