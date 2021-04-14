@@ -98,3 +98,11 @@ select ?p ?pLabel (count (*) as ?count) {
   ?o wdt:P31/wdt:P279* wd:Q43501 .
   SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
 } group by ?p ?pLabel order by desc(?count)
+
+###### Find the entity label given only its QID (here Q5)
+
+SELECT * WHERE {
+  wd:Q5 rdfs:label ?label.
+  FILTER(LANGMATCHES(LANG(?label), "EN"))
+}
+LIMIT 1

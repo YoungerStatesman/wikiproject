@@ -5,6 +5,8 @@ S = requests.Session()
 # Example: Henry James (QID: Q170509)
 wp = "https://en.wikipedia.org/w/api.php"
 wd = "https://www.wikidata.org/w/api.php"
+qu = "https://query.wikidata.org/sparql"
+
 wpp = {
     "action": "query",
     "titles": "Henry_James",
@@ -21,6 +23,7 @@ wpp = {
 class invalid_page_id(Exception):
     pass
 
+# Grab wikipedia article text
 def get_text(name):
     wpp = {
     "action": "query",
@@ -34,8 +37,35 @@ def get_text(name):
         raise invalid_page_id(f"Illegal characters (probably HTML) in name passed to API: Wikipedia page ID is {k}.")
 
     raw = S.get(url=wp, params=wpp).json()['query']['pages'][k]['extract']
-    text = bs(raw).text
+    text = bs(raw, 'lxml').text
     if text == '':
         raise invalid_page_id("Name passed to API led to a Wikipedia redirect or placeholder page: extract string is empty.")
 
     return text
+
+# Word counts
+exc = 0; inc = 1
+def countWords(string):
+    state = exc; wc = 0
+    # Scan characters one by one
+    for i in range(len(string)):
+
+        # If next character is a separator, set state to out
+        if (string[i] == ' ' or string[i] == '\n' or
+                string[i] == '\t'):
+            state = exc
+
+        # If next character is not a separator and state is out,
+        # set state to in and increment count
+        elif state == exc:
+            state = inc
+            wc += 1
+
+    return wc
+
+# Get label from Wikidata ID
+def get_label(id):
+    query = f"SELECT * WHERE {{wd:{id} rdfs:label ?label. FILTER(LANGMATCHES(LANG(?label), 'EN'))}} LIMIT 1"
+    resp = S.post(url = qu, params = {'query': query, 'format': 'json'}).text
+    label = json.loads(resp)['results']['bindings'][0]['label']['value']
+    return label
