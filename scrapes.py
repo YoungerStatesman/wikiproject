@@ -1,5 +1,9 @@
 import requests
 from bs4 import BeautifulSoup as bs
+import re
+import json
+from urllib.parse import unquote
+
 S = requests.Session()
 
 # Example: Henry James (QID: Q170509)
@@ -7,18 +11,13 @@ wp = "https://en.wikipedia.org/w/api.php"
 wd = "https://www.wikidata.org/w/api.php"
 qu = "https://query.wikidata.org/sparql"
 
-wpp = {
-    "action": "query",
-    "titles": "Henry_James",
-    "prop": "extracts",
-    "format": "json"
-    }
-
-# "Jules Am\u00e9d\u00e9e Barbey d'Aurevilly" # Gives an empty BS.text string, maybe because it's an automatic wikipedia redirect? Its id key in the 'pages' dictionary (k) is 47319708.
-# "Jules Amédée Barbey d'Aurevilly" # Output by SPARQL, but doesn't actually work, since it turns into a Unicode string, as in the first example. Thus k = 47319708...
-# "Jules_Barbey_d%27Aurevilly" # Gives an error at the ...['pages'][k] level ('invalidreason': 'The requested page title contains invalid characters: "%27".'), and k = -1. Thus HTML-coded special characters are illegal.
-# "Jules Barbey d'Aurevilly" # Success. k = 151321
-# "Jules_Barbey_d'Aurevilly" # Success. k = 151321
+# Sample parameters
+# wpp = {
+#     "action": "query",
+#     "titles": "Henry_James",
+#     "prop": "extracts",
+#     "format": "json"
+#     }
 
 class invalid_page_id(Exception):
     pass
@@ -64,8 +63,30 @@ def countWords(string):
     return wc
 
 # Get label from Wikidata ID
+
 def get_label(id):
     query = f"SELECT * WHERE {{wd:{id} rdfs:label ?label. FILTER(LANGMATCHES(LANG(?label), 'EN'))}} LIMIT 1"
     resp = S.post(url = qu, params = {'query': query, 'format': 'json'}).text
     label = json.loads(resp)['results']['bindings'][0]['label']['value']
     return label
+
+# Why the safename function:
+#
+# "Jules Am\u00e9d\u00e9e Barbey d'Aurevilly" (Unicode identifiers)
+# Gives an empty BS.text string, maybe because it's an automatic wikipedia redirect? Its id key in the 'pages' dictionary (k) is 47319708.
+#
+# "Jules Amédée Barbey d'Aurevilly" (Unicode character)
+# Output by SPARQL, but doesn't actually work, since it turns into a Unicode string, as in the first example. Thus k = 47319708...
+#
+# "Jules_Barbey_d%27Aurevilly" (HTML)
+# Gives an error at the ...['pages'][k] level ('invalidreason': 'The requested page title contains invalid characters: "%27".'), and k = -1. Thus HTML-coded special characters are illegal.
+#
+# "Jules Barbey d'Aurevilly" and "Jules_Barbey_d'Aurevilly" (no non-ASCII characters)
+# Success. k = 151321
+#
+# Return query-safe name compatible with wikipedia API calling (using get_name)
+
+def safename(url):
+    trunc = re.search("(?<=\/wiki\/).+", url).group()
+    safe = unquote(trunc)
+    return safe
