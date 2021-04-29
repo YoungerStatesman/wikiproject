@@ -36,7 +36,7 @@ def occ_mask(table):
 	return table
 
 # z = occ_mask(sparql_table(1800, 1900, "Q4263842", "Q6625963"))
-# z['text'] = z['personLabel'].apply(get_text)
+# z.insert(5, 'text', z['personLabel'].apply(get_text))
 
 def cleaner(text):
 	text = str(text)

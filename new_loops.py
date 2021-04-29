@@ -25,12 +25,17 @@ def nostops(text):
 
 #######################################################
 #                                                     #
-#            put the real SESSION CALL HERE           #
+#          place for a SPARQL/session call            #
 z = pd.read_json('table_18001900_occandtext.json')    #
 #                                                     #
 #######################################################
 
-# Identifying the location of the first occupational QID column for filtering.
+# %% Identifying the location of the first occupational QID column for filtering.
+
+qcol = []
+for i in z.columns:
+	if re.search(r"Q\d+", i):
+		qcol.append(i)
 
 firstq = z.columns.get_loc(qcol[0])
 
@@ -55,13 +60,15 @@ z['sets'] = [([a for a in x if a not in stoplist]) for x in z['sets']]
 z['sets'] = list(map(set, z['sets']))
 z['sets'] = z.sets.apply(lambda i: ' '.join(i))
 
-# Naive Bayes loop function
+# %% Naive Bayes loop function
+
+# Using "0.0"/"1.0" or "0"/"1"? Poorly defined in feature_gather.py maybe?
 
 def bayes(frame, size):
 	vec = cv(stop_words='english', max_features=30000);
 	vec.fit(frame.sets)
 	X = vec.transform(frame.text).toarray()
-	acc = []; rec = []; pre = []; cts = []; totalcts = []; cm = []; label_used = [];
+	acc = []; rec = []; pre = []; cts = []; totalcts = []; cm = []; label_used = []; auc = [];
 	for i in qcol:
 		X_train, X_test, y_train, y_test = train_test_split(X, frame.loc[:, i], test_size=size, random_state=0)
 		gb = GaussianNB()
@@ -69,10 +76,12 @@ def bayes(frame, size):
 		pred = gb.predict(X_test)
 		try:
 			output = metrics.classification_report(y_test, pred, output_dict=True, zero_division=0)['0']
+			auc_score = metrics.roc_auc_score(y_test, pred)
 			a = 0
 		except:
 			output = metrics.classification_report(y_test, pred, output_dict=True, zero_division=0)['1']
 			a = 1
+			auc_score = 'N/A'
 
 		label_used.append(str(a))
 		acc.append("{:0.3}".format(metrics.accuracy_score(y_test, pred)))
@@ -80,11 +89,12 @@ def bayes(frame, size):
 		rec.append("{:0.3}".format(output['recall']))
 		cts.append(y_test.sum())
 		cm.append(metrics.confusion_matrix(y_test, pred))
+		auc.append(auc_score)
 		totalcts.append(sum(frame.loc[:, i]))
 		# print(i, output)
 
-	d = {'label': label_used, 'acc': acc, 'pre': pre, 'rec': rec, 'cts': cts, 'totalcts': totalcts, 'conf': cm}
+	d = {'label': label_used, 'acc': acc, 'pre': pre, 'rec': rec, 'auc': auc, 'cts': cts, 'totalcts': totalcts, 'conf': cm}
 	df = pd.DataFrame(data=d, index=qcol)
 	return df
 
-# bayes(z, .25)
+bayes(z, .25)
