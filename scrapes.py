@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup as bs
 import re
 import json
 from urllib.parse import unquote
+import time
 
 S = requests.Session()
 
@@ -90,3 +91,15 @@ def safename(url):
     trunc = re.search("(?<=\/wiki\/).+", url).group()
     safe = unquote(trunc)
     return safe
+
+def relabel(frame):
+    newindex = []
+    for i in frame.index:
+        try:
+            j = get_label(i)
+            newindex.append(j)
+        except:
+            time.sleep(1)
+            j = get_label(i)
+            newindex.append(j)
+    return newindex
