@@ -23,7 +23,7 @@ qu = "https://query.wikidata.org/sparql"
 class invalid_page_id(Exception):
     pass
 
-# Grab wikipedia article text
+# Grabs wikipedia article text
 def get_text(name):
     wpp = {
     "action": "query",
@@ -43,7 +43,7 @@ def get_text(name):
 
     return text
 
-# Word counts
+# Finds word counts
 exc = 0; inc = 1
 def countWords(string):
     state = exc; wc = 0
@@ -63,7 +63,7 @@ def countWords(string):
 
     return wc
 
-# Get label from Wikidata ID
+# This function issues SPARQL calls to convert an occupation's QID back into a readable label
 
 def get_label(id):
     query = f"SELECT * WHERE {{wd:{id} rdfs:label ?label. FILTER(LANGMATCHES(LANG(?label), 'EN'))}} LIMIT 1"
@@ -92,6 +92,7 @@ def safename(url):
     safe = unquote(trunc)
     return safe
 
+# This function relabels the final metrics dataframe (whose index is occupation QIDs). I had to enter a sleep delay and a try/except test because using the get_label API call is really fussy for some reason??
 def relabel(frame):
     newindex = []
     for i in frame.index:

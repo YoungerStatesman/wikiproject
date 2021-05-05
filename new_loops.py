@@ -1,7 +1,3 @@
-import os
-os.getcwd()
-os.chdir("C://brain//rutgers//564//wikiproject")
-
 #################################################
 #                                               #
 #  IMPORTANT: store sparql_table output as "z"  #
@@ -45,11 +41,10 @@ def getqcols(frame):
 
 # %% Naive Bayes loop function
 
-# Using "0.0"/"1.0" or "0"/"1"? Poorly defined in feature_gather.py maybe?
-
 def bayes(frame, size, occmin):
 
-	# Filtering dataset to occupations over n
+	# Filtering dataset to occupations occurring more than n times
+
 	unfiltq = getqcols(frame)
 	firstq = frame.columns.get_loc(unfiltq[0])
 	tofilter = frame.iloc[:, firstq:]

@@ -1,12 +1,10 @@
-#import os
-#os.chdir("C://brain//rutgers//564//wikiproject")
-
 from scrapes import *
 from sparql_to_dataframe import *
 
 import pandas as pd
 import requests, json
 
+# This function creates a column of lists of occupations based
 def occ_mask(table):
 	po_dict = {}
 	occ_list = []
@@ -34,9 +32,6 @@ def occ_mask(table):
 	    table.loc[table.QID == i, occu] = [1 if x in [occu.index(y) for y in po_dict[i]] else 0 for x in range(len(occu))]
 
 	return table
-
-# z = occ_mask(sparql_table(1800, 1900, "Q4263842", "Q6625963"))
-# z.insert(5, 'text', z['personLabel'].apply(get_text))
 
 def cleaner(text):
 	text = str(text)
